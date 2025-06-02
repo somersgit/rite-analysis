@@ -141,12 +141,14 @@ def extract_general_category(pdf_reader, page_num):
         text = page.extract_text()
         
         # Look for category in first few lines
-        lines = text.split('\n')[:3]  # Check first 3 lines
+        lines = text.split('\n')[:5]  # Check first 5 lines instead of 3
         for line in lines:
-            # Common patterns for general categories
+            # Expanded patterns for general categories
             if any(pattern in line.upper() for pattern in [
                 'DISORDERS', 'EPILEPSY', 'DISEASE', 'INFECTION', 'INJURY',
-                'NEUROMUSCULAR', 'CEREBROVASCULAR', 'HEADACHE', 'NEURO-ONCOLOGY'
+                'NEUROMUSCULAR', 'CEREBROVASCULAR', 'HEADACHE', 'NEURO-ONCOLOGY',
+                'BRAIN', 'SPINAL', 'TRAUMA', 'NEUROCRITICAL', 'VASCULAR',
+                'NEUROLOGICAL', 'COGNITIVE', 'BEHAVIORAL', 'DEVELOPMENTAL'
             ]):
                 # Clean up the category text
                 category = line.strip()
@@ -172,10 +174,16 @@ def extract_general_category(pdf_reader, page_num):
                     'MOVEMENT DISORDERS': 'Movement Disorders',
                     'NEURODEGENERATIVE DISORDERS': 'Neurodegenerative Disorders',
                     'CRITICAL CARE NEUROLOGY': 'Critical Care Neurology',
-                    'PEDIATRIC NEUROLOGY': 'Pediatric Neurology'
+                    'PEDIATRIC NEUROLOGY': 'Pediatric Neurology',
+                    'BRAIN/SPINAL/TRAUMA/NEUROCRITICAL CARE': 'Brain/Spinal/Trauma/Neurocritical Care',
+                    'VASCULAR NEUROLOGY': 'Vascular Neurology',
+                    'NO ASSOCIATED NEUROLOGICAL DISORDERS': 'No Associated Neurological Disorders',
+                    'DEVELOPMENTAL DISORDERS': 'Developmental Disorders',
+                    'BRAIN AND SPINAL CORD TRAUMA': 'Brain/Spinal/Trauma/Neurocritical Care',
+                    'VASCULAR DISORDERS': 'Vascular Neurology'
                 }
                 
-                # Standardize the category name
+                # Clean and standardize the category
                 clean_category = category.strip()
                 upper_category = clean_category.upper()
                 
@@ -183,6 +191,14 @@ def extract_general_category(pdf_reader, page_num):
                 for standard_upper, standard_proper in category_mapping.items():
                     if standard_upper in upper_category:
                         return standard_proper
+                    
+                # Special case for combined categories
+                if any(word in upper_category for word in ['BRAIN', 'SPINAL', 'TRAUMA', 'NEUROCRITICAL']):
+                    return 'Brain/Spinal/Trauma/Neurocritical Care'
+                if any(word in upper_category for word in ['VASCULAR', 'STROKE']):
+                    return 'Vascular Neurology'
+                if 'NO ASSOCIATED' in upper_category or 'NO NEUROLOGICAL' in upper_category:
+                    return 'No Associated Neurological Disorders'
                 
                 # If no match found, return the cleaned category with proper capitalization
                 return clean_category.title()
