@@ -192,7 +192,8 @@ def extract_general_category(pdf_reader, page_num):
     return "Uncategorized"
 
 def extract_question_info(pdf_path, question_numbers):
-    client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+    # Initialize the OpenAI client without proxies
+    client = OpenAI()
     question_info = {}
     
     # Read the PDF to get page categories regardless of cache
@@ -482,8 +483,8 @@ def generate_teaching_points(question_info_60_79, question_info_80_plus):
     if not all_summaries:
         return []
 
-    # Use OpenAI to analyze summaries and generate teaching points
-    client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+    # Initialize the OpenAI client without proxies
+    client = OpenAI()
     
     prompt = f"""As a chief resident, analyze these question summaries from commonly missed RITE exam questions and provide key teaching points. Focus on:
 1. Common themes and patterns
