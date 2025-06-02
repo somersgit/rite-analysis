@@ -141,10 +141,25 @@ def extract_general_category(pdf_reader, page_num):
         text = page.extract_text()
         
         # Look for category in first few lines
-        lines = text.split('\n')[:5]  # Check first 5 lines instead of 3
+        lines = text.split('\n')[:5]  # Check first 5 lines
         for line in lines:
-            # Expanded patterns for general categories
-            if any(pattern in line.upper() for pattern in [
+            # Clean up the line for better matching
+            clean_line = line.strip().upper()
+            
+            # First check for neuromuscular/spinal cord disorders
+            if any(pattern in clean_line for pattern in [
+                'NEUROMUSCULAR DISORDER',
+                'SPINAL CORD',
+                'MOTOR NEURON',
+                'PERIPHERAL NERVE',
+                'ANTERIOR HORN',
+                'MYOPATHY',
+                'MUSCULAR'
+            ]):
+                return 'Neuromuscular Disorders'
+                
+            # Then check for other categories
+            if any(pattern in clean_line for pattern in [
                 'DISORDERS', 'EPILEPSY', 'DISEASE', 'INFECTION', 'INJURY',
                 'NEUROMUSCULAR', 'CEREBROVASCULAR', 'HEADACHE', 'NEURO-ONCOLOGY',
                 'BRAIN', 'SPINAL', 'TRAUMA', 'NEUROCRITICAL', 'VASCULAR',
@@ -153,7 +168,7 @@ def extract_general_category(pdf_reader, page_num):
                 # Clean up the category text
                 category = line.strip()
                 
-                # Remove any numbers (including page numbers) and their surrounding parentheses
+                # Remove any numbers and their surrounding parentheses
                 category = re.sub(r'\s*\(\d+.*?\)\s*', '', category)
                 category = re.sub(r'^\d+\.?\s*', '', category)
                 category = re.sub(r'\s*\d+\s*$', '', category)
@@ -192,8 +207,8 @@ def extract_general_category(pdf_reader, page_num):
                     if standard_upper in upper_category:
                         return standard_proper
                     
-                # Special case for combined categories
-                if any(word in upper_category for word in ['BRAIN', 'SPINAL', 'TRAUMA', 'NEUROCRITICAL']):
+                # Special case for combined categories - but only if clearly trauma/critical care related
+                if ('TRAUMA' in upper_category or 'CRITICAL' in upper_category or 'INJURY' in upper_category) and any(word in upper_category for word in ['BRAIN', 'SPINAL']):
                     return 'Brain/Spinal/Trauma/Neurocritical Care'
                 if any(word in upper_category for word in ['VASCULAR', 'STROKE']):
                     return 'Vascular Neurology'
