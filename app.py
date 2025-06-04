@@ -146,88 +146,93 @@ def extract_page_headers(pdf_reader):
         try:
             page_text = pdf_reader.pages[page_num].extract_text()
             if page_text:
+                # Add page marker with the actual page text
                 full_text += f"\n[PAGE {page_num + 1}]\n{page_text}"
         except Exception as e:
             print(f"Error extracting text from page {page_num}: {str(e)}")
     
-    # Process pages to identify categories
-    for page_num in range(len(pdf_reader.pages)):
+    # Process pages to identify categories and their boundaries
+    current_page = 0
+    current_category = None
+    
+    # Split text into pages
+    pages = full_text.split('[PAGE')
+    
+    for page in pages[1:]:  # Skip first empty split
         try:
-            page = pdf_reader.pages[page_num]
-            text = page.extract_text()
-            lines = text.split('\n')
-            
-            # First two pages typically don't have category headers
-            if page_num < 2:
-                page_categories[page_num] = "Uncategorized"
-                continue
-            
-            # Look at first few lines of each page
-            category_found = False
-            for line in lines[:3]:  # Check first 3 lines
-                # Clean the line
-                clean_line = line.strip()
+            # Extract page number
+            page_num_match = re.match(r'\s*(\d+)\s*\]', page)
+            if page_num_match:
+                page_num = int(page_num_match.group(1)) - 1
+                page_content = page[page_num_match.end():]
                 
-                # Skip empty lines or lines that are just page numbers
-                if not clean_line or clean_line.isdigit():
+                # Skip first two pages
+                if page_num < 2:
+                    page_categories[page_num] = "Uncategorized"
                     continue
                 
-                # Look for header pattern: text followed by optional page number
-                header_match = re.search(r'^(.*?)(?:\s+\d+\s*)?$', clean_line)
-                if header_match:
-                    potential_category = header_match.group(1).strip()
-                    
-                    # Skip if it's just a number or too short
-                    if potential_category.isdigit() or len(potential_category) < 5:
+                # Look for category in first few lines
+                lines = [line.strip() for line in page_content.split('\n') if line.strip()]
+                category_found = False
+                
+                for line in lines[:3]:
+                    # Skip lines that are just page numbers
+                    if line.isdigit():
                         continue
                     
-                    # Remove any parenthetical content and clean up
-                    clean_category = re.sub(r'\s*\(.*?\)\s*', '', potential_category)
-                    clean_category = re.sub(r'^\d+\.\s*', '', clean_category)  # Remove leading numbers
-                    clean_category = clean_category.strip()
-                    
-                    if clean_category:
-                        current_category = clean_category
-                        if current_category not in category_questions:
-                            category_questions[current_category] = set()
-                        category_found = True
-                        break
-            
-            # Assign current category to this page
-            if category_found:
-                page_categories[page_num] = current_category
-            else:
-                # If no category found, use the last known category
-                if page_num > 0 and (page_num - 1) in page_categories and page_categories[page_num - 1] != "Uncategorized":
-                    page_categories[page_num] = page_categories[page_num - 1]
+                    # Look for header pattern: text followed by optional page number
+                    header_match = re.search(r'^(.*?)(?:\s+\d+\s*)?$', line)
+                    if header_match:
+                        potential_category = header_match.group(1).strip()
+                        
+                        # Skip if it's just a number or too short
+                        if potential_category.isdigit() or len(potential_category) < 5:
+                            continue
+                        
+                        # Remove any parenthetical content and clean up
+                        clean_category = re.sub(r'\s*\(.*?\)\s*', '', potential_category)
+                        clean_category = re.sub(r'^\d+\.\s*', '', clean_category)  # Remove leading numbers
+                        clean_category = clean_category.strip()
+                        
+                        if clean_category:
+                            current_category = clean_category
+                            if current_category not in category_questions:
+                                category_questions[current_category] = set()
+                            category_found = True
+                            break
+                
+                # Assign category to page
+                if category_found:
+                    page_categories[page_num] = current_category
+                elif current_category and page_num > 0:
+                    page_categories[page_num] = current_category
                 else:
                     page_categories[page_num] = "Uncategorized"
+                
+                # Find questions on this page
+                if current_category and current_category != "Uncategorized":
+                    # Look for question numbers in various formats
+                    question_patterns = [
+                        r'Question\s+#?\s*(\d+)',  # "Question #123" or "Question 123"
+                        r'(?:^|\n)\s*(\d+)\s+[A-Z]',  # Number at start of line followed by uppercase
+                        r'(?:^|\n)\s*(\d+)\s*\.',  # Number followed by period
+                        r'(?:^|\n)\s*(\d+)\s+(?=\w)',  # Number followed by word
+                    ]
                     
+                    for pattern in question_patterns:
+                        matches = re.finditer(pattern, page_content)
+                        for match in matches:
+                            try:
+                                question_num = int(match.group(1))
+                                # Verify it's a reasonable question number (not a page number or year)
+                                if 1 <= question_num <= 1000:  # Assuming no more than 1000 questions
+                                    category_questions[current_category].add(question_num)
+                            except (ValueError, IndexError):
+                                continue
+        
         except Exception as e:
-            print(f"Error processing page {page_num}: {str(e)}")
-            page_categories[page_num] = "Uncategorized"
-    
-    # Split text into sections by page markers
-    sections = re.split(r'\[PAGE \d+\]', full_text)
-    current_page = 0
-    
-    # Process each section (page) to find questions
-    for section in sections:
-        if not section.strip():
+            print(f"Error processing page: {str(e)}")
             continue
-            
-        current_category = page_categories.get(current_page)
-        
-        # Look for questions in this section
-        if current_category and current_category != "Uncategorized":
-            # Find all question numbers in various formats
-            question_matches = re.finditer(r'(?:Question\s+#?\s*(\d+)|^(\d+)\s+[A-Z]|\n(\d+)\s+[A-Z])', section)
-            for match in question_matches:
-                question_num = int(match.group(1) or match.group(2) or match.group(3))
-                if current_category in category_questions:
-                    category_questions[current_category].add(question_num)
-        
-        current_page += 1
     
     # Print debug information
     print("\nQuestion counts per category:")
