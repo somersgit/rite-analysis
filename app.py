@@ -214,7 +214,7 @@ def extract_page_headers(pdf_reader):
                     # Look for lines that start with a number and contain all caps text
                     lines = page_content.split('\n')
                     for line in lines:
-                        # Look for pattern: number followed by rest of line
+                        # Look for pattern: number followed by all caps text
                         match = re.match(r'^\s*(\d+)\s+(.+)$', line)
                         if match:
                             try:
@@ -238,7 +238,7 @@ def extract_page_headers(pdf_reader):
     # Convert sets to counts
     category_question_counts = {cat: len(questions) for cat, questions in category_questions.items()}
     
-    return page_categories, category_question_counts
+    return page_categories, category_question_counts, category_questions
 
 def extract_general_category(pdf_reader, page_num):
     """Extract the general category for a specific page."""
@@ -257,7 +257,7 @@ def extract_question_info(pdf_path, question_numbers):
     # Read the PDF and extract page categories first
     with open(pdf_path, 'rb') as file:
         pdf_reader = PyPDF2.PdfReader(file)
-        page_categories, category_question_counts = extract_page_headers(pdf_reader)
+        page_categories, category_question_counts, category_questions = extract_page_headers(pdf_reader)
         print("\nExtracted page categories:")
         for page_num, category in sorted(page_categories.items()):
             print(f"Page {page_num + 1}: {category}")
@@ -590,14 +590,16 @@ def analyze():
     manual_file.save(manual_path)
     
     try:
-        # First, get all page categories from the manual
+        # First, get all page categories and question mappings from the manual
         with open(manual_path, 'rb') as file:
             pdf_reader = PyPDF2.PdfReader(file)
-            page_categories, category_question_counts = extract_page_headers(pdf_reader)
+            page_categories, category_question_counts, category_questions = extract_page_headers(pdf_reader)
         
         # Get questions with high error rates
         high_error_questions = extract_wrong_answer_rates(wrong_rates_path)
         all_questions = high_error_questions['60-79'] + high_error_questions['80+']
+        
+        # Get detailed question info
         question_info = extract_question_info(manual_path, all_questions)
         
         questions_60_79 = {q: question_info[q] for q in high_error_questions['60-79']}
@@ -631,7 +633,7 @@ def analyze():
         # Add question counts to category summary
         category_summary['category_questions'] = category_question_counts
         
-        # Count high-error questions per category
+        # Count high-error questions per category using the passed category_questions
         for error_range, questions in high_error_questions.items():
             for q_num in questions:
                 # Find which category this question belongs to
