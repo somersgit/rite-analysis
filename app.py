@@ -625,6 +625,21 @@ def analyze():
         # Add question counts to category summary
         category_summary['category_questions'] = category_question_counts
         
+        # Add high-error question counts per category
+        category_summary['high_error_questions'] = {}
+        all_high_error_questions = high_error_questions['60-79'] + high_error_questions['80+']
+        
+        # Initialize counts for each category
+        for category in category_question_counts.keys():
+            category_summary['high_error_questions'][category] = 0
+        
+        # Count high-error questions per category
+        for q_num in all_high_error_questions:
+            for category, questions in category_questions.items():
+                if q_num in questions:
+                    category_summary['high_error_questions'][category] += 1
+                    break
+        
         # Sort categories by frequency
         category_summary['category_frequency'] = dict(
             sorted(category_summary['category_frequency'].items(), 
