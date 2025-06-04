@@ -573,7 +573,14 @@ Provide a concise, bullet-pointed list of 5-7 key teaching points that would be 
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    # Initialize empty stats for the template
+    initial_stats = {
+        'category_summary': {
+            'category_questions': {},
+            'high_error_questions': {}
+        }
+    }
+    return render_template('index.html', stats=initial_stats)
 
 @app.route('/analyze', methods=['POST'])
 def analyze():

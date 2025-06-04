@@ -73,7 +73,7 @@
                 <h2 class="text-xl font-semibold mb-4">Summary Statistics</h2>
                 
                 <!-- Category Summary Section -->
-                <div class="card mb-4">
+                <div class="card mb-4" v-if="Object.keys(stats.category_summary.category_questions).length > 0">
                     <div class="card-header">
                         <h5 class="mb-0">Document Categories</h5>
                     </div>
