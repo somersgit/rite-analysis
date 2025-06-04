@@ -573,14 +573,7 @@ Provide a concise, bullet-pointed list of 5-7 key teaching points that would be 
 
 @app.route('/')
 def index():
-    # Initialize empty stats for the template
-    initial_stats = {
-        'category_summary': {
-            'category_questions': {},
-            'high_error_questions': {}
-        }
-    }
-    return render_template('index.html', stats=initial_stats)
+    return render_template('index.html')
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
@@ -621,31 +614,32 @@ def analyze():
         category_summary = {
             'total_pages': len(page_categories),
             'uncategorized_pages': sum(1 for cat in page_categories.values() if cat == "Uncategorized"),
-            'category_frequency': {}
+            'category_frequency': {},
+            'high_error_counts': {}  # Add tracking for high-error questions per category
         }
         
-        # Count frequency of each category, excluding "Uncategorized"
+        # Count frequency of each category and initialize high-error counts
         for category in page_categories.values():
             if category != "Uncategorized":
                 category_summary['category_frequency'][category] = category_summary['category_frequency'].get(category, 0) + 1
+                category_summary['high_error_counts'][category] = {
+                    '60-79': 0,
+                    '80+': 0,
+                    'total': 0
+                }
         
         # Add question counts to category summary
         category_summary['category_questions'] = category_question_counts
         
-        # Add high-error question counts per category
-        category_summary['high_error_questions'] = {}
-        all_high_error_questions = high_error_questions['60-79'] + high_error_questions['80+']
-        
-        # Initialize counts for each category
-        for category in category_question_counts.keys():
-            category_summary['high_error_questions'][category] = 0
-        
         # Count high-error questions per category
-        for q_num in all_high_error_questions:
-            for category, questions in category_questions.items():
-                if q_num in questions:
-                    category_summary['high_error_questions'][category] += 1
-                    break
+        for error_range, questions in high_error_questions.items():
+            for q_num in questions:
+                # Find which category this question belongs to
+                for category, q_set in category_questions.items():
+                    if q_num in q_set:
+                        category_summary['high_error_counts'][category][error_range] += 1
+                        category_summary['high_error_counts'][category]['total'] += 1
+                        break
         
         # Sort categories by frequency
         category_summary['category_frequency'] = dict(
