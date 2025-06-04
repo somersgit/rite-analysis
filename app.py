@@ -207,16 +207,32 @@ def extract_page_headers(pdf_reader):
             print(f"Error processing page {page_num}: {str(e)}")
             page_categories[page_num] = "Uncategorized"
     
-    # Find questions in each category section
-    current_category = None
-    for match in re.finditer(r'\[PAGE (\d+)\]|\bQuestion #?(\d+)\b|\b(\d+)\s+[A-Z]', full_text):
-        if match.group(1):  # Page marker
-            page_num = int(match.group(1)) - 1
-            current_category = page_categories.get(page_num)
-        elif (match.group(2) or match.group(3)) and current_category and current_category != "Uncategorized":
-            question_num = int(match.group(2) or match.group(3))
-            if current_category in category_questions:
-                category_questions[current_category].add(question_num)
+    # Split text into sections by page markers
+    sections = re.split(r'\[PAGE \d+\]', full_text)
+    current_page = 0
+    
+    # Process each section (page) to find questions
+    for section in sections:
+        if not section.strip():
+            continue
+            
+        current_category = page_categories.get(current_page)
+        
+        # Look for questions in this section
+        if current_category and current_category != "Uncategorized":
+            # Find all question numbers in various formats
+            question_matches = re.finditer(r'(?:Question\s+#?\s*(\d+)|^(\d+)\s+[A-Z]|\n(\d+)\s+[A-Z])', section)
+            for match in question_matches:
+                question_num = int(match.group(1) or match.group(2) or match.group(3))
+                if current_category in category_questions:
+                    category_questions[current_category].add(question_num)
+        
+        current_page += 1
+    
+    # Print debug information
+    print("\nQuestion counts per category:")
+    for category, questions in category_questions.items():
+        print(f"{category}: {len(questions)} questions - {sorted(list(questions))}")
     
     # Convert sets to counts
     category_question_counts = {cat: len(questions) for cat, questions in category_questions.items()}
