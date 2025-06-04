@@ -134,93 +134,104 @@ def extract_wrong_answer_rates(pdf_path):
     
     return high_error_questions
 
-def extract_general_category(pdf_reader, page_num):
-    """Extract the general category from the top of the page."""
-    try:
-        page = pdf_reader.pages[page_num]
-        text = page.extract_text()
-        
-        # Look for category in first few lines
-        lines = text.split('\n')[:5]  # Check first 5 lines
-        for line in lines:
-            # Clean up the line for better matching
-            clean_line = line.strip().upper()
+def extract_page_headers(pdf_reader):
+    """Extract headers from each page and map them to page numbers."""
+    page_categories = {}
+    current_category = None
+    
+    for page_num in range(len(pdf_reader.pages)):
+        try:
+            page = pdf_reader.pages[page_num]
+            text = page.extract_text()
+            lines = text.split('\n')
             
-            # First check for neuromuscular/spinal cord disorders
-            if any(pattern in clean_line for pattern in [
-                'NEUROMUSCULAR DISORDER',
-                'SPINAL CORD',
-                'MOTOR NEURON',
-                'PERIPHERAL NERVE',
-                'ANTERIOR HORN',
-                'MYOPATHY',
-                'MUSCULAR'
-            ]):
-                return 'Neuromuscular Disorders'
+            # Look at first few lines of each page
+            for line in lines[:3]:  # Check first 3 lines
+                # Clean the line
+                clean_line = line.strip()
                 
-            # Then check for other categories
-            if any(pattern in clean_line for pattern in [
-                'DISORDERS', 'EPILEPSY', 'DISEASE', 'INFECTION', 'INJURY',
-                'NEUROMUSCULAR', 'CEREBROVASCULAR', 'HEADACHE', 'NEURO-ONCOLOGY',
-                'BRAIN', 'SPINAL', 'TRAUMA', 'NEUROCRITICAL', 'VASCULAR',
-                'NEUROLOGICAL', 'COGNITIVE', 'BEHAVIORAL', 'DEVELOPMENTAL'
-            ]):
-                # Clean up the category text
-                category = line.strip()
+                # Skip empty lines or lines that are just page numbers
+                if not clean_line or clean_line.isdigit():
+                    continue
                 
-                # Remove any numbers and their surrounding parentheses
-                category = re.sub(r'\s*\(\d+.*?\)\s*', '', category)
-                category = re.sub(r'^\d+\.?\s*', '', category)
-                category = re.sub(r'\s*\d+\s*$', '', category)
-                
-                # Remove any remaining parenthetical content
-                category = re.sub(r'\s*\(.*?\)\s*', '', category)
-                
-                # Standardize some common categories
-                category_mapping = {
-                    'BEHAVIORAL/NEUROCOGNITIVE DISORDERS': 'Behavioral/Neurocognitive Disorders',
-                    'EPILEPSY AND EPISODIC DISORDERS': 'Epilepsy and Episodic Disorders',
-                    'CEREBROVASCULAR DISEASE': 'Cerebrovascular Disease',
-                    'NEUROMUSCULAR DISORDERS': 'Neuromuscular Disorders',
-                    'NEURO-ONCOLOGY': 'Neuro-Oncology',
-                    'NEUROIMAGING': 'Neuroimaging',
-                    'NEUROIMMUNOLOGY': 'Neuroimmunology',
-                    'HEADACHE': 'Headache Disorders',
-                    'MOVEMENT DISORDERS': 'Movement Disorders',
-                    'NEURODEGENERATIVE DISORDERS': 'Neurodegenerative Disorders',
-                    'CRITICAL CARE NEUROLOGY': 'Critical Care Neurology',
-                    'PEDIATRIC NEUROLOGY': 'Pediatric Neurology',
-                    'BRAIN/SPINAL/TRAUMA/NEUROCRITICAL CARE': 'Brain/Spinal/Trauma/Neurocritical Care',
-                    'VASCULAR NEUROLOGY': 'Vascular Neurology',
-                    'NO ASSOCIATED NEUROLOGICAL DISORDERS': 'No Associated Neurological Disorders',
-                    'DEVELOPMENTAL DISORDERS': 'Developmental Disorders',
-                    'BRAIN AND SPINAL CORD TRAUMA': 'Brain/Spinal/Trauma/Neurocritical Care',
-                    'VASCULAR DISORDERS': 'Vascular Neurology'
-                }
-                
-                # Clean and standardize the category
-                clean_category = category.strip()
-                upper_category = clean_category.upper()
-                
-                # Try to match with standardized categories
-                for standard_upper, standard_proper in category_mapping.items():
-                    if standard_upper in upper_category:
-                        return standard_proper
+                # Look for patterns that indicate a header
+                # Headers typically have page numbers after them
+                header_match = re.search(r'^(.*?)\s*(?:\d+\s*)?$', clean_line)
+                if header_match:
+                    potential_category = header_match.group(1).strip()
                     
-                # Special case for combined categories - but only if clearly trauma/critical care related
-                if ('TRAUMA' in upper_category or 'CRITICAL' in upper_category or 'INJURY' in upper_category) and any(word in upper_category for word in ['BRAIN', 'SPINAL']):
-                    return 'Brain/Spinal/Trauma/Neurocritical Care'
-                if any(word in upper_category for word in ['VASCULAR', 'STROKE']):
-                    return 'Vascular Neurology'
-                if 'NO ASSOCIATED' in upper_category or 'NO NEUROLOGICAL' in upper_category:
-                    return 'No Associated Neurological Disorders'
-                
-                # If no match found, return the cleaned category with proper capitalization
-                return clean_category.title()
-                
-    except Exception as e:
-        print(f"Error extracting general category from page {page_num}: {str(e)}")
-    return "Uncategorized"
+                    # Skip if it's just a number or too short
+                    if potential_category.isdigit() or len(potential_category) < 5:
+                        continue
+                    
+                    # Check if it matches known category patterns
+                    if any(pattern in potential_category.upper() for pattern in [
+                        'DISORDERS', 'EPILEPSY', 'DISEASE', 'INFECTION',
+                        'NEUROMUSCULAR', 'CEREBROVASCULAR', 'HEADACHE',
+                        'NEURO-ONCOLOGY', 'BRAIN', 'SPINAL', 'TRAUMA',
+                        'NEUROCRITICAL', 'VASCULAR', 'NEUROLOGICAL',
+                        'COGNITIVE', 'BEHAVIORAL', 'DEVELOPMENTAL'
+                    ]):
+                        # Clean up the category name
+                        clean_category = re.sub(r'\s*\d+\s*$', '', potential_category)
+                        clean_category = re.sub(r'^\d+\.\s*', '', clean_category)
+                        clean_category = re.sub(r'\s*\(.*?\)\s*', '', clean_category)
+                        
+                        # Standardize category names
+                        category_mapping = {
+                            'BEHAVIORAL/NEUROCOGNITIVE DISORDERS': 'Behavioral/Neurocognitive Disorders',
+                            'EPILEPSY AND EPISODIC DISORDERS': 'Epilepsy and Episodic Disorders',
+                            'CEREBROVASCULAR DISEASE': 'Cerebrovascular Disease',
+                            'NEUROMUSCULAR DISORDERS': 'Neuromuscular Disorders',
+                            'NEURO-ONCOLOGY': 'Neuro-Oncology',
+                            'NEUROIMAGING': 'Neuroimaging',
+                            'NEUROIMMUNOLOGY': 'Neuroimmunology',
+                            'HEADACHE': 'Headache Disorders',
+                            'MOVEMENT DISORDERS': 'Movement Disorders',
+                            'NEURODEGENERATIVE DISORDERS': 'Neurodegenerative Disorders',
+                            'CRITICAL CARE NEUROLOGY': 'Critical Care Neurology',
+                            'PEDIATRIC NEUROLOGY': 'Pediatric Neurology',
+                            'BRAIN/SPINAL/TRAUMA/NEUROCRITICAL CARE': 'Brain/Spinal/Trauma/Neurocritical Care',
+                            'VASCULAR NEUROLOGY': 'Vascular Neurology',
+                            'DEVELOPMENTAL DISORDERS': 'Developmental Disorders'
+                        }
+                        
+                        upper_category = clean_category.upper()
+                        if upper_category in category_mapping:
+                            current_category = category_mapping[upper_category]
+                        else:
+                            # Try partial matches
+                            for standard_upper, standard_proper in category_mapping.items():
+                                if standard_upper in upper_category:
+                                    current_category = standard_proper
+                                    break
+                            else:
+                                # If no match found, use cleaned version
+                                current_category = clean_category.title()
+                        
+                        break  # Found a valid category, stop checking lines
+            
+            # Assign current category to this page
+            if current_category:
+                page_categories[page_num] = current_category
+            else:
+                # If no category found, use the last known category
+                if page_num > 0 and (page_num - 1) in page_categories:
+                    page_categories[page_num] = page_categories[page_num - 1]
+                else:
+                    page_categories[page_num] = "Uncategorized"
+                    
+        except Exception as e:
+            print(f"Error processing page {page_num}: {str(e)}")
+            page_categories[page_num] = "Uncategorized"
+    
+    return page_categories
+
+def extract_general_category(pdf_reader, page_num):
+    """Extract the general category for a specific page."""
+    # This function now just returns the category from the page_categories mapping
+    # The actual extraction is done once by extract_page_headers
+    return "Uncategorized"  # This will be replaced by the mapping from extract_page_headers
 
 def extract_question_info(pdf_path, question_numbers):
     # Initialize the OpenAI client
@@ -230,16 +241,13 @@ def extract_question_info(pdf_path, question_numbers):
     )
     question_info = {}
     
-    # Read the PDF to get page categories regardless of cache
-    page_categories = {}
+    # Read the PDF and extract page categories first
     with open(pdf_path, 'rb') as file:
         pdf_reader = PyPDF2.PdfReader(file)
-        for page_num in range(len(pdf_reader.pages)):
-            try:
-                page_categories[page_num] = extract_general_category(pdf_reader, page_num)
-            except Exception as e:
-                print(f"Warning: Error extracting category from page {page_num + 1}: {str(e)}")
-                page_categories[page_num] = "Uncategorized"
+        page_categories = extract_page_headers(pdf_reader)
+        print("\nExtracted page categories:")
+        for page_num, category in sorted(page_categories.items()):
+            print(f"Page {page_num + 1}: {category}")
     
     # Check if we have processed this PDF before
     pdf_fingerprint = get_pdf_fingerprint(pdf_path)
@@ -284,7 +292,6 @@ def extract_question_info(pdf_path, question_numbers):
                         updated_question['general_category'] = page_categories.get(current_page, "Uncategorized")
                         updated_cache[q_num] = updated_question
                     else:
-                        # Handle error cases
                         updated_cache[q_num] = {
                             'category': 'Error',
                             'subcategory': None,
@@ -385,6 +392,10 @@ def extract_question_info(pdf_path, question_numbers):
                 question_info[q_num] = f"Question {q_num} information not found"
                 continue
             
+            # Get the general category for this question from the page it's on
+            general_category = page_categories.get(current_page, "Uncategorized")
+            print(f"Question {q_num} found on page {current_page + 1}, category: {general_category}")
+            
             # Rest of your existing question processing code...
             next_q_pattern = r'Question #\d{1,3}|\n\d{1,3}\s+[A-Z]|\[PAGE \d+\]'
             next_q_match = re.search(next_q_pattern, full_text[start_idx + len(matched_text):])
@@ -441,6 +452,7 @@ def extract_question_info(pdf_path, question_numbers):
             print(f"\nProcessing Question {q_num}:")
             print(f"Category: {category}")
             print(f"Subcategory: {subcategory}")
+            print(f"General Category: {general_category}")
             print(f"Content length: {len(content)} characters")
             
             prompt = (
@@ -448,6 +460,7 @@ def extract_question_info(pdf_path, question_numbers):
                 f"Question Number: {q_num}\n"
                 f"Category: {category}\n"
                 f"Subcategory: {subcategory}\n"
+                f"General Category: {general_category}\n"
                 f"Content: {content}\n\n"
                 f"Please provide a brief, specific summary that covers:\n"
                 f"1. The exact medical knowledge or concept being tested\n"
@@ -468,13 +481,10 @@ def extract_question_info(pdf_path, question_numbers):
                 print(f"Warning: Error generating summary for Question {q_num}: {str(e)}")
                 summary = "Error generating summary"
             
-            # Get the general category for this question from the page it's on
-            general_category = page_categories.get(current_page, "Uncategorized")
-            
             result = {
                 'category': category,
                 'subcategory': subcategory,
-                'general_category': general_category,  # Add the general category
+                'general_category': general_category,
                 'content': content,
                 'reference': reference,
                 'summary': summary
@@ -488,7 +498,7 @@ def extract_question_info(pdf_path, question_numbers):
             error_result = {
                 'category': 'Error',
                 'subcategory': None,
-                'general_category': 'Error',  # Add general category even for errors
+                'general_category': 'Error',
                 'content': f"Error processing question: {str(e)}",
                 'reference': None,
                 'summary': 'Error processing question'
@@ -567,6 +577,12 @@ def analyze():
     manual_file.save(manual_path)
     
     try:
+        # First, get all page categories from the manual
+        with open(manual_path, 'rb') as file:
+            pdf_reader = PyPDF2.PdfReader(file)
+            page_categories = extract_page_headers(pdf_reader)
+        
+        # Get questions with high error rates
         high_error_questions = extract_wrong_answer_rates(wrong_rates_path)
         all_questions = high_error_questions['60-79'] + high_error_questions['80+']
         question_info = extract_question_info(manual_path, all_questions)
@@ -578,8 +594,27 @@ def analyze():
         
         # Prepare statistics
         subcategory_stats = {'60-79': {}, '80+': {}}
-        general_category_stats = {'60-79': {}, '80+': {}}  # New stats for general categories
+        general_category_stats = {'60-79': {}, '80+': {}}
         population_stats = {'60-79': {}, '80+': {}}
+        
+        # Calculate category statistics
+        category_summary = {
+            'total_pages': len(page_categories),
+            'uncategorized_pages': sum(1 for cat in page_categories.values() if cat == "Uncategorized"),
+            'category_frequency': {}
+        }
+        
+        # Count frequency of each category
+        for category in page_categories.values():
+            if category != "Uncategorized":
+                category_summary['category_frequency'][category] = category_summary['category_frequency'].get(category, 0) + 1
+        
+        # Sort categories by frequency
+        category_summary['category_frequency'] = dict(
+            sorted(category_summary['category_frequency'].items(), 
+                  key=lambda x: x[1], 
+                  reverse=True)
+        )
         
         # Process categories for 60-79% questions
         for q_num in high_error_questions['60-79']:
@@ -622,8 +657,9 @@ def analyze():
                 '60-79': len(high_error_questions['60-79']),
                 '80+': len(high_error_questions['80+']),
                 'categories': subcategory_stats,
-                'general_categories': general_category_stats,  # Add general categories to response
-                'population': population_stats
+                'general_categories': general_category_stats,
+                'population': population_stats,
+                'category_summary': category_summary
             },
             'teaching_points': teaching_points,
             'questions_60_79': questions_60_79,
