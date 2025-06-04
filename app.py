@@ -145,6 +145,11 @@ def extract_page_headers(pdf_reader):
             text = page.extract_text()
             lines = text.split('\n')
             
+            # Skip first two pages as they typically don't have category headers
+            if page_num < 2:
+                page_categories[page_num] = "Introduction"
+                continue
+            
             # Look at first few lines of each page
             for line in lines[:3]:  # Check first 3 lines
                 # Clean the line
@@ -154,9 +159,8 @@ def extract_page_headers(pdf_reader):
                 if not clean_line or clean_line.isdigit():
                     continue
                 
-                # Look for patterns that indicate a header
-                # Headers typically have page numbers after them
-                header_match = re.search(r'^(.*?)\s*(?:\d+\s*)?$', clean_line)
+                # Look for header pattern: text followed by optional page number
+                header_match = re.search(r'^(.*?)(?:\s+\d+\s*)?$', clean_line)
                 if header_match:
                     potential_category = header_match.group(1).strip()
                     
@@ -164,52 +168,14 @@ def extract_page_headers(pdf_reader):
                     if potential_category.isdigit() or len(potential_category) < 5:
                         continue
                     
-                    # Check if it matches known category patterns
-                    if any(pattern in potential_category.upper() for pattern in [
-                        'DISORDERS', 'EPILEPSY', 'DISEASE', 'INFECTION',
-                        'NEUROMUSCULAR', 'CEREBROVASCULAR', 'HEADACHE',
-                        'NEURO-ONCOLOGY', 'BRAIN', 'SPINAL', 'TRAUMA',
-                        'NEUROCRITICAL', 'VASCULAR', 'NEUROLOGICAL',
-                        'COGNITIVE', 'BEHAVIORAL', 'DEVELOPMENTAL'
-                    ]):
-                        # Clean up the category name
-                        clean_category = re.sub(r'\s*\d+\s*$', '', potential_category)
-                        clean_category = re.sub(r'^\d+\.\s*', '', clean_category)
-                        clean_category = re.sub(r'\s*\(.*?\)\s*', '', clean_category)
-                        
-                        # Standardize category names
-                        category_mapping = {
-                            'BEHAVIORAL/NEUROCOGNITIVE DISORDERS': 'Behavioral/Neurocognitive Disorders',
-                            'EPILEPSY AND EPISODIC DISORDERS': 'Epilepsy and Episodic Disorders',
-                            'CEREBROVASCULAR DISEASE': 'Cerebrovascular Disease',
-                            'NEUROMUSCULAR DISORDERS': 'Neuromuscular Disorders',
-                            'NEURO-ONCOLOGY': 'Neuro-Oncology',
-                            'NEUROIMAGING': 'Neuroimaging',
-                            'NEUROIMMUNOLOGY': 'Neuroimmunology',
-                            'HEADACHE': 'Headache Disorders',
-                            'MOVEMENT DISORDERS': 'Movement Disorders',
-                            'NEURODEGENERATIVE DISORDERS': 'Neurodegenerative Disorders',
-                            'CRITICAL CARE NEUROLOGY': 'Critical Care Neurology',
-                            'PEDIATRIC NEUROLOGY': 'Pediatric Neurology',
-                            'BRAIN/SPINAL/TRAUMA/NEUROCRITICAL CARE': 'Brain/Spinal/Trauma/Neurocritical Care',
-                            'VASCULAR NEUROLOGY': 'Vascular Neurology',
-                            'DEVELOPMENTAL DISORDERS': 'Developmental Disorders'
-                        }
-                        
-                        upper_category = clean_category.upper()
-                        if upper_category in category_mapping:
-                            current_category = category_mapping[upper_category]
-                        else:
-                            # Try partial matches
-                            for standard_upper, standard_proper in category_mapping.items():
-                                if standard_upper in upper_category:
-                                    current_category = standard_proper
-                                    break
-                            else:
-                                # If no match found, use cleaned version
-                                current_category = clean_category.title()
-                        
-                        break  # Found a valid category, stop checking lines
+                    # Remove any parenthetical content and clean up
+                    clean_category = re.sub(r'\s*\(.*?\)\s*', '', potential_category)
+                    clean_category = re.sub(r'^\d+\.\s*', '', clean_category)  # Remove leading numbers
+                    clean_category = clean_category.strip()
+                    
+                    if clean_category:
+                        current_category = clean_category
+                        break
             
             # Assign current category to this page
             if current_category:
