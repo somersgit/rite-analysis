@@ -145,8 +145,13 @@ def extract_page_headers(pdf_reader):
             text = page.extract_text()
             lines = text.split('\n')
             
+            # First two pages typically don't have category headers
+            if page_num < 2:
+                page_categories[page_num] = "Uncategorized"
+                continue
+            
             # Look at first few lines of each page
-            found_category = False
+            category_found = False
             for line in lines[:3]:  # Check first 3 lines
                 # Clean the line
                 clean_line = line.strip()
@@ -171,11 +176,11 @@ def extract_page_headers(pdf_reader):
                     
                     if clean_category:
                         current_category = clean_category
-                        found_category = True
+                        category_found = True
                         break
             
             # Assign current category to this page
-            if found_category:
+            if category_found:
                 page_categories[page_num] = current_category
             else:
                 # If no category found, use the last known category
@@ -562,12 +567,12 @@ def analyze():
         
         # Calculate category statistics
         category_summary = {
-            'total_pages': len([cat for cat in page_categories.values() if cat != "Uncategorized"]),
+            'total_pages': len(page_categories),
             'uncategorized_pages': sum(1 for cat in page_categories.values() if cat == "Uncategorized"),
             'category_frequency': {}
         }
         
-        # Count frequency of each category, excluding uncategorized pages
+        # Count frequency of each category, excluding "Uncategorized"
         for category in page_categories.values():
             if category != "Uncategorized":
                 category_summary['category_frequency'][category] = category_summary['category_frequency'].get(category, 0) + 1
