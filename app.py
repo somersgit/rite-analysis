@@ -211,21 +211,17 @@ def extract_page_headers(pdf_reader):
                 
                 # Find questions on this page
                 if current_category and current_category != "Uncategorized":
-                    # Look for question numbers in various formats
-                    question_patterns = [
-                        r'Question\s+#?\s*(\d+)',  # "Question #123" or "Question 123"
-                        r'(?:^|\n)\s*(\d+)\s+[A-Z]',  # Number at start of line followed by uppercase
-                        r'(?:^|\n)\s*(\d+)\s*\.',  # Number followed by period
-                        r'(?:^|\n)\s*(\d+)\s+(?=\w)',  # Number followed by word
-                    ]
-                    
-                    for pattern in question_patterns:
-                        matches = re.finditer(pattern, page_content)
-                        for match in matches:
+                    # Look for lines that start with a number and contain all caps text
+                    lines = page_content.split('\n')
+                    for line in lines:
+                        # Look for pattern: number followed by all caps text
+                        match = re.match(r'^\s*(\d+)\s+([A-Z][A-Z\s]+)(?:\s+|$)', line)
+                        if match:
                             try:
                                 question_num = int(match.group(1))
-                                # Verify it's a reasonable question number (not a page number or year)
-                                if 1 <= question_num <= 1000:  # Assuming no more than 1000 questions
+                                caps_text = match.group(2).strip()
+                                # Verify it's a reasonable question number and the following text is all caps
+                                if 1 <= question_num <= 1000 and caps_text.isupper():
                                     category_questions[current_category].add(question_num)
                             except (ValueError, IndexError):
                                 continue
