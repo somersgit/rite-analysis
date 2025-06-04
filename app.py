@@ -214,14 +214,14 @@ def extract_page_headers(pdf_reader):
                     # Look for lines that start with a number and contain all caps text
                     lines = page_content.split('\n')
                     for line in lines:
-                        # Look for pattern: number followed by all caps text
-                        match = re.match(r'^\s*(\d+)\s+([A-Z][A-Z\s]+)(?:\s+|$)', line)
+                        # Look for pattern: number followed by rest of line
+                        match = re.match(r'^\s*(\d+)\s+(.+)$', line)
                         if match:
                             try:
                                 question_num = int(match.group(1))
-                                caps_text = match.group(2).strip()
-                                # Verify it's a reasonable question number and the following text is all caps
-                                if 1 <= question_num <= 1000 and caps_text.isupper():
+                                remaining_text = match.group(2).strip()
+                                # Verify it's a reasonable question number and all remaining text is caps
+                                if 1 <= question_num <= 1000 and remaining_text.isupper():
                                     category_questions[current_category].add(question_num)
                             except (ValueError, IndexError):
                                 continue
