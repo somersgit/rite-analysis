@@ -71,6 +71,30 @@
             <!-- Statistics -->
             <div class="bg-white rounded-lg shadow-md p-6">
                 <h2 class="text-xl font-semibold mb-4">Summary Statistics</h2>
+                
+                <!-- Category Summary Section -->
+                <div class="mb-8 bg-gray-50 p-6 rounded-lg">
+                    <h3 class="text-lg font-medium text-gray-800 mb-4">Document Categories</h3>
+                    <div id="category-summary" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-white p-3 rounded shadow-sm">
+                                <p class="text-sm text-gray-600">Total Pages</p>
+                                <p id="total-pages" class="text-lg font-semibold">0</p>
+                            </div>
+                            <div class="bg-white p-3 rounded shadow-sm">
+                                <p class="text-sm text-gray-600">Uncategorized Pages</p>
+                                <p id="uncategorized-pages" class="text-lg font-semibold">0</p>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="text-md font-medium text-gray-700 mb-2">Identified Categories</h4>
+                            <div id="category-list" class="space-y-2">
+                                <!-- Categories will be inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-2 gap-4 mb-6">
                     <div class="bg-yellow-50 p-4 rounded-lg">
                         <h3 class="text-lg font-medium text-yellow-800">60-79% Wrong</h3>
@@ -273,6 +297,21 @@
                 const data = await response.json();
                 
                 if (response.ok) {
+                    // Update category summary
+                    document.getElementById('total-pages').textContent = data.stats.category_summary.total_pages;
+                    document.getElementById('uncategorized-pages').textContent = data.stats.category_summary.uncategorized_pages;
+                    
+                    const categoryList = document.getElementById('category-list');
+                    categoryList.innerHTML = '';
+                    Object.entries(data.stats.category_summary.category_frequency).forEach(([category, frequency]) => {
+                        categoryList.innerHTML += `
+                            <div class="flex justify-between items-center bg-white p-2 rounded shadow-sm">
+                                <span class="text-gray-800">${category}</span>
+                                <span class="text-gray-600 text-sm">${frequency} pages</span>
+                            </div>
+                        `;
+                    });
+                    
                     // Update statistics
                     document.getElementById('stat-60-79').textContent = data.stats['60-79'];
                     document.getElementById('stat-80-plus').textContent = data.stats['80+'];
