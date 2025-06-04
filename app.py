@@ -145,12 +145,8 @@ def extract_page_headers(pdf_reader):
             text = page.extract_text()
             lines = text.split('\n')
             
-            # Skip first two pages as they typically don't have category headers
-            if page_num < 2:
-                page_categories[page_num] = "Introduction"
-                continue
-            
             # Look at first few lines of each page
+            found_category = False
             for line in lines[:3]:  # Check first 3 lines
                 # Clean the line
                 clean_line = line.strip()
@@ -175,14 +171,15 @@ def extract_page_headers(pdf_reader):
                     
                     if clean_category:
                         current_category = clean_category
+                        found_category = True
                         break
             
             # Assign current category to this page
-            if current_category:
+            if found_category:
                 page_categories[page_num] = current_category
             else:
                 # If no category found, use the last known category
-                if page_num > 0 and (page_num - 1) in page_categories:
+                if page_num > 0 and (page_num - 1) in page_categories and page_categories[page_num - 1] != "Uncategorized":
                     page_categories[page_num] = page_categories[page_num - 1]
                 else:
                     page_categories[page_num] = "Uncategorized"
@@ -565,12 +562,12 @@ def analyze():
         
         # Calculate category statistics
         category_summary = {
-            'total_pages': len(page_categories),
+            'total_pages': len([cat for cat in page_categories.values() if cat != "Uncategorized"]),
             'uncategorized_pages': sum(1 for cat in page_categories.values() if cat == "Uncategorized"),
             'category_frequency': {}
         }
         
-        # Count frequency of each category
+        # Count frequency of each category, excluding uncategorized pages
         for category in page_categories.values():
             if category != "Uncategorized":
                 category_summary['category_frequency'][category] = category_summary['category_frequency'].get(category, 0) + 1
