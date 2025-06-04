@@ -304,10 +304,14 @@
                     const categoryList = document.getElementById('category-list');
                     categoryList.innerHTML = '';
                     Object.entries(data.stats.category_summary.category_frequency).forEach(([category, frequency]) => {
+                        const questionCount = data.stats.category_summary.category_questions[category] || 0;
                         categoryList.innerHTML += `
                             <div class="flex justify-between items-center bg-white p-2 rounded shadow-sm">
                                 <span class="text-gray-800">${category}</span>
-                                <span class="text-gray-600 text-sm">${frequency} pages</span>
+                                <div class="text-gray-600 text-sm space-x-4">
+                                    <span>${frequency} pages</span>
+                                    <span class="border-l pl-4">${questionCount} questions</span>
+                                </div>
                             </div>
                         `;
                     });

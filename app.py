@@ -135,10 +135,22 @@ def extract_wrong_answer_rates(pdf_path):
     return high_error_questions
 
 def extract_page_headers(pdf_reader):
-    """Extract headers from each page and map them to page numbers."""
+    """Extract headers from each page and map them to page numbers and track questions."""
     page_categories = {}
+    category_questions = {}  # Track questions for each category
     current_category = None
+    full_text = ""
     
+    # First, get full text with page markers
+    for page_num in range(len(pdf_reader.pages)):
+        try:
+            page_text = pdf_reader.pages[page_num].extract_text()
+            if page_text:
+                full_text += f"\n[PAGE {page_num + 1}]\n{page_text}"
+        except Exception as e:
+            print(f"Error extracting text from page {page_num}: {str(e)}")
+    
+    # Process pages to identify categories
     for page_num in range(len(pdf_reader.pages)):
         try:
             page = pdf_reader.pages[page_num]
@@ -176,6 +188,8 @@ def extract_page_headers(pdf_reader):
                     
                     if clean_category:
                         current_category = clean_category
+                        if current_category not in category_questions:
+                            category_questions[current_category] = set()
                         category_found = True
                         break
             
@@ -193,7 +207,21 @@ def extract_page_headers(pdf_reader):
             print(f"Error processing page {page_num}: {str(e)}")
             page_categories[page_num] = "Uncategorized"
     
-    return page_categories
+    # Find questions in each category section
+    current_category = None
+    for match in re.finditer(r'\[PAGE (\d+)\]|\bQuestion #?(\d+)\b|\b(\d+)\s+[A-Z]', full_text):
+        if match.group(1):  # Page marker
+            page_num = int(match.group(1)) - 1
+            current_category = page_categories.get(page_num)
+        elif (match.group(2) or match.group(3)) and current_category and current_category != "Uncategorized":
+            question_num = int(match.group(2) or match.group(3))
+            if current_category in category_questions:
+                category_questions[current_category].add(question_num)
+    
+    # Convert sets to counts
+    category_question_counts = {cat: len(questions) for cat, questions in category_questions.items()}
+    
+    return page_categories, category_question_counts
 
 def extract_general_category(pdf_reader, page_num):
     """Extract the general category for a specific page."""
@@ -212,7 +240,7 @@ def extract_question_info(pdf_path, question_numbers):
     # Read the PDF and extract page categories first
     with open(pdf_path, 'rb') as file:
         pdf_reader = PyPDF2.PdfReader(file)
-        page_categories = extract_page_headers(pdf_reader)
+        page_categories, category_question_counts = extract_page_headers(pdf_reader)
         print("\nExtracted page categories:")
         for page_num, category in sorted(page_categories.items()):
             print(f"Page {page_num + 1}: {category}")
@@ -548,7 +576,7 @@ def analyze():
         # First, get all page categories from the manual
         with open(manual_path, 'rb') as file:
             pdf_reader = PyPDF2.PdfReader(file)
-            page_categories = extract_page_headers(pdf_reader)
+            page_categories, category_question_counts = extract_page_headers(pdf_reader)
         
         # Get questions with high error rates
         high_error_questions = extract_wrong_answer_rates(wrong_rates_path)
@@ -576,6 +604,9 @@ def analyze():
         for category in page_categories.values():
             if category != "Uncategorized":
                 category_summary['category_frequency'][category] = category_summary['category_frequency'].get(category, 0) + 1
+        
+        # Add question counts to category summary
+        category_summary['category_questions'] = category_question_counts
         
         # Sort categories by frequency
         category_summary['category_frequency'] = dict(
