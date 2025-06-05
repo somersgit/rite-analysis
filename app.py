@@ -181,7 +181,7 @@ def extract_page_headers(pdf_reader):
                         continue
                     
                     # Look for header pattern: text followed by optional page number
-                    header_match = re.search(r'^(.*?)(?:\s+\d+\s*)?$', line)
+                    header_match = re.search(r'^(.*?)(?:\s+\d+)?$', line)
                     if header_match:
                         potential_category = header_match.group(1).strip()
                         
@@ -192,6 +192,8 @@ def extract_page_headers(pdf_reader):
                         # Remove any parenthetical content and clean up
                         clean_category = re.sub(r'\s*\(.*?\)\s*', '', potential_category)
                         clean_category = re.sub(r'^\d+\.\s*', '', clean_category)  # Remove leading numbers
+                        # Remove any trailing numbers that might be page numbers
+                        clean_category = re.sub(r'\s+\d+$', '', clean_category)
                         clean_category = clean_category.strip()
                         
                         if clean_category:
