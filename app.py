@@ -194,10 +194,17 @@ def extract_page_headers(pdf_reader):
                         clean_category = re.sub(r'^\d+\.\s*', '', clean_category)  # Remove leading numbers
                         # Remove any trailing numbers that might be page numbers
                         clean_category = re.sub(r'\s+\d+$', '', clean_category)
+                        # Remove any numbers that might be attached to the category name
+                        clean_category = re.sub(r'(\D+?)(\d+)$', r'\1', clean_category)
                         clean_category = clean_category.strip()
                         
                         if clean_category:
-                            current_category = clean_category
+                            # Check if this category exists without numbers
+                            base_category = re.sub(r'\d+$', '', clean_category)
+                            if base_category.strip() in category_questions:
+                                current_category = base_category.strip()
+                            else:
+                                current_category = clean_category
                             if current_category not in category_questions:
                                 category_questions[current_category] = set()
                             category_found = True
