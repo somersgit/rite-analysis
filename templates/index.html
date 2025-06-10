@@ -336,12 +336,14 @@
                     categoryList.innerHTML = '';
                     Object.entries(data.stats.category_summary.category_frequency).forEach(([category, frequency]) => {
                         const questionCount = data.stats.category_summary.category_questions[category] || 0;
+                        const highErrors = data.stats.category_summary.high_error_counts[category] || { 'total': 0 };
                         categoryList.innerHTML += `
                             <div class="flex justify-between items-center bg-white p-2 rounded shadow-sm">
                                 <span class="text-gray-800">${category}</span>
                                 <div class="text-gray-600 text-sm space-x-4">
                                     <span>${frequency} pages</span>
                                     <span class="border-l pl-4">${questionCount} questions</span>
+                                    <span class="border-l pl-4">${highErrors.total} high-error</span>
                                 </div>
                             </div>
                         `;
