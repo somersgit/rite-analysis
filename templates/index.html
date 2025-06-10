@@ -316,7 +316,8 @@
                 options: {
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: false },
+                        title: { display: false },
+                        legend: { position: 'top' },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
@@ -325,7 +326,16 @@
                             }
                         }
                     },
+                    responsive: true,
                     scales: {
+                        x: {
+                            ticks: {
+                                autoSkip: false,
+                                maxRotation: 45,
+                                minRotation: 45,
+                                font: { size: 11 }
+                            }
+                        },
                         y: {
                             beginAtZero: true,
                             ticks: {
