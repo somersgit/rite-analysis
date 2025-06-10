@@ -386,19 +386,60 @@
                     
                     const categoryList = document.getElementById('category-list');
                     categoryList.innerHTML = '';
+
+                    const idMap = {};
+                    let idx = 0;
+
+                    // Map questions to their general categories
+                    const questionsByCategory = {};
+                    for (const [num, info] of Object.entries(data.questions_60_79)) {
+                        const cat = info.general_category || 'Uncategorized';
+                        if (!questionsByCategory[cat]) questionsByCategory[cat] = [];
+                        questionsByCategory[cat].push({ num, info, range: '60-79' });
+                    }
+                    for (const [num, info] of Object.entries(data.questions_80_plus)) {
+                        const cat = info.general_category || 'Uncategorized';
+                        if (!questionsByCategory[cat]) questionsByCategory[cat] = [];
+                        questionsByCategory[cat].push({ num, info, range: '80+' });
+                    }
+
                     Object.entries(data.stats.category_summary.category_frequency).forEach(([category, frequency]) => {
                         const questionCount = data.stats.category_summary.category_questions[category] || 0;
                         const highErrors = data.stats.category_summary.high_error_counts[category] || { 'total': 0 };
+                        const highErrPercent = questionCount ? ((highErrors.total / questionCount) * 100).toFixed(1) : 0;
+                        const correctPercent = questionCount ? (100 - highErrPercent).toFixed(1) : 0;
+                        const detailId = `cat-${idx++}`;
+                        idMap[category] = detailId;
+                        const questions = questionsByCategory[category] || [];
+                        const questionCards = questions.map(q =>
+                            createQuestionCard(q.num, q.info, q.range === '60-79' ? 'border-yellow-400' : 'border-red-400')
+                        ).join('') || '<p class="text-gray-500">No high-error questions.</p>';
+
                         categoryList.innerHTML += `
-                            <div class="flex justify-between items-center bg-white p-2 rounded shadow-sm">
-                                <span class="text-gray-800">${category}</span>
-                                <div class="text-gray-600 text-sm space-x-4">
-                                    <span>${frequency} pages</span>
-                                    <span class="border-l pl-4">${questionCount} questions</span>
-                                    <span class="border-l pl-4">${highErrors.total} high-error</span>
+                            <div class="border rounded">
+                                <div class="flex justify-between items-center bg-white p-2 rounded shadow-sm cursor-pointer" data-target="${detailId}">
+                                    <span class="text-gray-800">${category}</span>
+                                    <div class="text-gray-600 text-sm space-x-4">
+                                        <span>${frequency} pages</span>
+                                        <span class="border-l pl-4">${questionCount} questions</span>
+                                        <span class="border-l pl-4">${highErrors.total} high-error</span>
+                                    </div>
+                                </div>
+                                <div id="${detailId}" class="hidden p-2 bg-gray-50 space-y-2">
+                                    <p class="text-sm text-gray-700">Majority Incorrectly Answered: ${highErrPercent}%</p>
+                                    <p class="text-sm text-gray-700 mb-2">Majority Correctly Answered: ${correctPercent}%</p>
+                                    <div class="space-y-4">${questionCards}</div>
                                 </div>
                             </div>
                         `;
+                    });
+
+                    // Toggle detail visibility on click
+                    categoryList.querySelectorAll('[data-target]').forEach(el => {
+                        el.addEventListener('click', () => {
+                            const target = document.getElementById(el.dataset.target);
+                            if (target) target.classList.toggle('hidden');
+                        });
                     });
                     
                     // Update statistics
@@ -428,17 +469,12 @@
                     // Update question lists
                     const questions6079 = document.getElementById('questions-60-79');
                     const questions80plus = document.getElementById('questions-80-plus');
-                    
+
                     questions6079.innerHTML = '';
                     questions80plus.innerHTML = '';
-                    
-                    for (const [num, info] of Object.entries(data.questions_60_79)) {
-                        questions6079.innerHTML += createQuestionCard(num, info, 'border-yellow-400');
-                    }
-                    
-                    for (const [num, info] of Object.entries(data.questions_80_plus)) {
-                        questions80plus.innerHTML += createQuestionCard(num, info, 'border-red-400');
-                    }
+                    // Hide global question lists as details are now shown per category
+                    questions6079.parentElement.style.display = 'none';
+                    questions80plus.parentElement.style.display = 'none';
                     
                     // Show results
                     document.getElementById('results').style.display = 'block';
