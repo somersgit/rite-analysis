@@ -140,7 +140,7 @@
                 <!-- Charts Section -->
                 <div class="mt-8 space-y-6">
                     <div class="chart-wrapper">
-                        <h3 class="text-lg font-medium text-gray-800 mb-2">High-Error Question Percentage by Category</h3>
+                        <h3 class="text-lg font-medium text-gray-800 mb-2">High-Error Question Percentage by General Category</h3>
                         <canvas id="highErrorPercentageChart"></canvas>
                     </div>
                     <div class="chart-wrapper">
@@ -310,11 +310,12 @@
                     datasets: [{
                         label: '% High-Error Questions',
                         data: Object.values(percentages),
-                        backgroundColor: '#3b82f6'
+                        backgroundColor: '#ef4444'
                     }]
                 },
                 options: {
                     maintainAspectRatio: false,
+                    responsive: true,
                     plugins: {
                         legend: { display: false },
                         tooltip: {
@@ -326,6 +327,14 @@
                         }
                     },
                     scales: {
+                        x: {
+                            ticks: {
+                                autoSkip: false,
+                                maxRotation: 45,
+                                minRotation: 45,
+                                font: { size: 11 }
+                            }
+                        },
                         y: {
                             beginAtZero: true,
                             ticks: {
@@ -399,9 +408,9 @@
                     const percentData = {};
                     Object.entries(data.stats.category_summary.category_questions).forEach(([cat, total]) => {
                         const highErr = (data.stats.category_summary.high_error_counts[cat] || { total: 0 }).total;
-                        percentData[cat] = total ? ((highErr / total) * 100).toFixed(1) : 0;
+                        percentData[cat] = total ? parseFloat(((highErr / total) * 100).toFixed(1)) : 0;
                     });
-                    createPercentageBarChart(percentData, 'highErrorPercentageChart', 'High-Error Question Percentage by Category');
+                    createPercentageBarChart(percentData, 'highErrorPercentageChart', 'High-Error Question Percentage by General Category');
                     createStackedBarChart(data.stats.categories, 'categoryChart', 'Questions by Topic/Subject Area');
                     createStackedBarChart(data.stats.general_categories, 'generalCategoryChart', 'Questions by General Category');
                     createStackedBarChart(data.stats.population, 'populationChart', 'Questions by Population Type');
