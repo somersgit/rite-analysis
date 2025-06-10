@@ -140,6 +140,10 @@
                 <!-- Charts Section -->
                 <div class="mt-8 space-y-6">
                     <div class="chart-wrapper">
+                        <h3 class="text-lg font-medium text-gray-800 mb-2">High-Error Question Percentage by Category</h3>
+                        <canvas id="highErrorPercentageChart"></canvas>
+                    </div>
+                    <div class="chart-wrapper">
                         <h3 class="text-lg font-medium text-gray-800 mb-2">Distribution by Topic/Subject Area</h3>
                         <canvas id="categoryChart"></canvas>
                     </div>
@@ -297,6 +301,44 @@
             });
         }
 
+        function createPercentageBarChart(percentages, chartId, title) {
+            const ctx = document.getElementById(chartId).getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(percentages),
+                    datasets: [{
+                        label: '% High-Error Questions',
+                        data: Object.values(percentages),
+                        backgroundColor: '#3b82f6'
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.raw + '%';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
         document.getElementById('uploadForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -354,6 +396,12 @@
                     document.getElementById('stat-80-plus').textContent = data.stats['80+'];
                     
                     // Create charts
+                    const percentData = {};
+                    Object.entries(data.stats.category_summary.category_questions).forEach(([cat, total]) => {
+                        const highErr = (data.stats.category_summary.high_error_counts[cat] || { total: 0 }).total;
+                        percentData[cat] = total ? ((highErr / total) * 100).toFixed(1) : 0;
+                    });
+                    createPercentageBarChart(percentData, 'highErrorPercentageChart', 'High-Error Question Percentage by Category');
                     createStackedBarChart(data.stats.categories, 'categoryChart', 'Questions by Topic/Subject Area');
                     createStackedBarChart(data.stats.general_categories, 'generalCategoryChart', 'Questions by General Category');
                     createStackedBarChart(data.stats.population, 'populationChart', 'Questions by Population Type');
