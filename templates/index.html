@@ -72,6 +72,24 @@
             <div class="bg-white rounded-lg shadow-md p-6">
                 <h2 class="text-xl font-semibold mb-4">Summary Statistics</h2>
                 
+                <!-- 60-79 and 80+ stats -->
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-yellow-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-medium text-yellow-800">60-79% Wrong</h3>
+                        <p id="stat-60-79" class="text-2xl font-bold text-yellow-900">0</p>
+                    </div>
+                    <div class="bg-red-50 p-4 rounded-lg">
+                        <h3 class="text-lg font-medium text-red-800">80%+ Wrong</h3>
+                        <p id="stat-80-plus" class="text-2xl font-bold text-red-900">0</p>
+                    </div>
+                </div>
+
+                <!-- High-error chart -->
+                <div class="chart-wrapper mb-8">
+                    <h3 class="text-lg font-medium text-gray-800 mb-2">High-Error Question Percentage by Category</h3>
+                    <canvas id="highErrorPercentageChart"></canvas>
+                </div>
+
                 <!-- Category Summary Section -->
                 <div class="mb-8 bg-gray-50 p-6 rounded-lg">
                     <h3 class="text-lg font-medium text-gray-800 mb-4">Document Categories</h3>
@@ -93,56 +111,10 @@
                             </div>
                         </div>
                     </div>
-                    <div class="mb-4">
-                        <h3 class="text-xl font-bold mb-2">Document Categories</h3>
-                        <p class="mb-2">Total Pages: {{ result.stats.category_summary.total_pages }}</p>
-                        <p class="mb-2">Uncategorized Pages: {{ result.stats.category_summary.uncategorized_pages }}</p>
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full bg-white border border-gray-300">
-                                <thead>
-                                    <tr>
-                                        <th class="px-4 py-2 border-b">Category</th>
-                                        <th class="px-4 py-2 border-b">Pages</th>
-                                        <th class="px-4 py-2 border-b">Questions</th>
-                                        <th class="px-4 py-2 border-b">High-Error Questions (60-79%)</th>
-                                        <th class="px-4 py-2 border-b">High-Error Questions (80%+)</th>
-                                        <th class="px-4 py-2 border-b">Total High-Error</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for category, count in result.stats.category_summary.category_frequency.items() %}
-                                    <tr>
-                                        <td class="px-4 py-2 border-b">{{ category }}</td>
-                                        <td class="px-4 py-2 border-b">{{ count }}</td>
-                                        <td class="px-4 py-2 border-b">{{ result.stats.category_summary.category_questions.get(category, 0) }}</td>
-                                        <td class="px-4 py-2 border-b">{{ result.stats.category_summary.high_error_counts.get(category, {}).get('60-79', 0) }}</td>
-                                        <td class="px-4 py-2 border-b">{{ result.stats.category_summary.high_error_counts.get(category, {}).get('80+', 0) }}</td>
-                                        <td class="px-4 py-2 border-b">{{ result.stats.category_summary.high_error_counts.get(category, {}).get('total', 0) }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <div class="bg-yellow-50 p-4 rounded-lg">
-                        <h3 class="text-lg font-medium text-yellow-800">60-79% Wrong</h3>
-                        <p id="stat-60-79" class="text-2xl font-bold text-yellow-900">0</p>
-                    </div>
-                    <div class="bg-red-50 p-4 rounded-lg">
-                        <h3 class="text-lg font-medium text-red-800">80%+ Wrong</h3>
-                        <p id="stat-80-plus" class="text-2xl font-bold text-red-900">0</p>
-                    </div>
-                </div>
-                
                 <!-- Charts Section -->
                 <div class="mt-8 space-y-6">
-                    <div class="chart-wrapper">
-                        <h3 class="text-lg font-medium text-gray-800 mb-2">High-Error Question Percentage by Category</h3>
-                        <canvas id="highErrorPercentageChart"></canvas>
-                    </div>
                     <div class="chart-wrapper">
                         <h3 class="text-lg font-medium text-gray-800 mb-2">Distribution by Topic/Subject Area</h3>
                         <canvas id="categoryChart"></canvas>
