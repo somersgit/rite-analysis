@@ -645,7 +645,8 @@ def analyze():
             'uncategorized_pages': sum(1 for cat in page_categories.values() if cat == "Uncategorized"),
             'category_frequency': {},
             'high_error_counts': {},  # Add tracking for high-error questions per category
-            'subcategory_counts': category_subcategories
+            'subcategory_counts': category_subcategories,
+            'subcategory_high_error_counts': {}
         }
         
         # Count frequency of each category and initialize high-error counts
@@ -657,6 +658,7 @@ def analyze():
                     '80+': 0,
                     'total': 0
                 }
+                category_summary['subcategory_high_error_counts'][category] = {}
         
         # Add question counts to category summary
         category_summary['category_questions'] = category_question_counts
@@ -671,6 +673,12 @@ def analyze():
                     if q_num in q_set:
                         category_summary['high_error_counts'][category][error_range] += 1
                         category_summary['high_error_counts'][category]['total'] += 1
+                        # Track subcategory high-error counts
+                        if isinstance(question_info.get(q_num), dict):
+                            sub = question_info[q_num].get('subcategory')
+                            if sub:
+                                sub_dict = category_summary['subcategory_high_error_counts'].setdefault(category, {})
+                                sub_dict[sub] = sub_dict.get(sub, 0) + 1
                         break
         
         # Sort categories by frequency

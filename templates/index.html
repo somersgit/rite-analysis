@@ -391,9 +391,16 @@
                             createQuestionCard(q.num, q.info, q.range === '60-79' ? 'border-yellow-400' : 'border-red-400')
                         ).join('') || '<p class="text-gray-500">No high-error questions.</p>';
                         const subCounts = data.stats.category_summary.subcategory_counts[category] || {};
-                        const subList = Object.entries(subCounts).map(([sub, count]) =>
-                            `<span class="block ml-4 text-xs text-gray-700">${sub}: ${count}</span>`
-                        ).join('');
+                        const subHighCounts = data.stats.category_summary.subcategory_high_error_counts[category] || {};
+                        const subList = Object.entries(subCounts).map(([sub, count]) => {
+                            const high = subHighCounts[sub] || 0;
+                            return `<span class="block ml-4 text-xs text-gray-700">${sub}: ${count}${high ? ` (${high} high-error)` : ''}</span>`;
+                        }).join('');
+                        const subHighList = Object.entries(subHighCounts).map(([sub, count]) => {
+                            const total = subCounts[sub] || 0;
+                            const pct = total ? ((count / total) * 100).toFixed(1) : 0;
+                            return `<li>${pct}% high-error rate in ${sub}</li>`;
+                        }).join('');
 
                         categoryList.innerHTML += `
                             <div class="border rounded">
@@ -408,6 +415,7 @@
                                  <div id="${detailId}" class="hidden p-2 bg-gray-50 space-y-2">
                                      ${subList ? `<div class="text-xs text-gray-700">${subList}</div>` : ''}
                                      <h4 class="text-md font-bold text-red-700">Amount of Questions Incorrectly Answered by More than 60% of Residents: ${highErrPercent}%</h4>
+                                     ${subHighList ? `<ul class="list-disc ml-8 text-sm text-red-700">${subHighList}</ul>` : ''}
                                      <div class="pl-4 space-y-4">${questionCards}</div>
                                      <h4 class="text-sm font-semibold text-gray-700 mt-2">Majority Correctly Answered: ${correctPercent}%</h4>
                                  </div>
