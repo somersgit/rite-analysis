@@ -413,10 +413,10 @@
                                     </div>
                                 </div>
                                  <div id="${detailId}" class="hidden p-2 bg-gray-50 space-y-2">
-                                     ${subList ? `<div class="text-xs text-gray-700">${subList}</div>` : ''}
+                                    ${subList ? `<div class="text-xs text-gray-700">${subList}</div>` : ''}
+                                     <h4 class="text-md font-bold text-green-700">Majority Correctly Answered: ${correctPercent}%</h4>
                                      <h4 class="text-md font-bold text-red-700">Amount of Questions Incorrectly Answered by More than 60% of Residents: ${highErrPercent}%</h4>
                                      ${subHighList ? `<ul class="list-disc ml-8 text-sm text-red-700">${subHighList}</ul>` : ''}
-                                     <h4 class="text-md font-bold text-green-700">Majority Correctly Answered: ${correctPercent}%</h4>
                                      <div class="pl-4 space-y-4">${questionCards}</div>
                                  </div>
                             </div>
