@@ -138,6 +138,7 @@ def extract_page_headers(pdf_reader):
     """Extract headers from each page and map them to page numbers and track questions."""
     page_categories = {}
     category_questions = {}  # Track questions for each category
+    category_subcategories = {}  # Track subcategory counts per category
     current_category = None
     full_text = ""
     
@@ -217,7 +218,7 @@ def extract_page_headers(pdf_reader):
                 if current_category and current_category != "Uncategorized":
                     # Look for lines that start with a number and contain all caps text
                     lines = page_content.split('\n')
-                    for line in lines:
+                    for idx, line in enumerate(lines):
                         # Look for pattern: number followed by all caps text
                         match = re.match(r'^\s*(\d+)\s+(.+)$', line)
                         if match:
@@ -226,7 +227,15 @@ def extract_page_headers(pdf_reader):
                                 remaining_text = match.group(2).strip()
                                 # Verify it's a reasonable question number and all remaining text is caps
                                 if 1 <= question_num <= 1000 and remaining_text.isupper():
-                                    category_questions[current_category].add(question_num)
+                                    category_questions.setdefault(current_category, set()).add(question_num)
+                                    # Capture subcategory from the line immediately following
+                                    if idx + 1 < len(lines):
+                                        sub_line = lines[idx + 1].strip()
+                                        if sub_line:
+                                            sub_clean = clean_text(sub_line)
+                                            category_subcategories.setdefault(current_category, {})
+                                            category_subcategories[current_category][sub_clean] = \
+                                                category_subcategories[current_category].get(sub_clean, 0) + 1
                             except (ValueError, IndexError):
                                 continue
         
@@ -241,8 +250,8 @@ def extract_page_headers(pdf_reader):
     
     # Convert sets to counts
     category_question_counts = {cat: len(questions) for cat, questions in category_questions.items()}
-    
-    return page_categories, category_question_counts, category_questions
+
+    return page_categories, category_question_counts, category_questions, category_subcategories
 
 def extract_general_category(pdf_reader, page_num):
     """Extract the general category for a specific page."""
@@ -261,7 +270,7 @@ def extract_question_info(pdf_path, question_numbers):
     # Read the PDF and extract page categories first
     with open(pdf_path, 'rb') as file:
         pdf_reader = PyPDF2.PdfReader(file)
-        page_categories, category_question_counts, category_questions = extract_page_headers(pdf_reader)
+        page_categories, category_question_counts, category_questions, _ = extract_page_headers(pdf_reader)
         print("\nExtracted page categories:")
         for page_num, category in sorted(page_categories.items()):
             print(f"Page {page_num + 1}: {category}")
@@ -611,7 +620,7 @@ def analyze():
         # First, get all page categories and question mappings from the manual
         with open(manual_path, 'rb') as file:
             pdf_reader = PyPDF2.PdfReader(file)
-            page_categories, category_question_counts, category_questions = extract_page_headers(pdf_reader)
+            page_categories, category_question_counts, category_questions, category_subcategories = extract_page_headers(pdf_reader)
         
         # Get questions with high error rates
         high_error_questions = extract_wrong_answer_rates(wrong_rates_path)
@@ -635,7 +644,8 @@ def analyze():
             'total_pages': len(page_categories),
             'uncategorized_pages': sum(1 for cat in page_categories.values() if cat == "Uncategorized"),
             'category_frequency': {},
-            'high_error_counts': {}  # Add tracking for high-error questions per category
+            'high_error_counts': {},  # Add tracking for high-error questions per category
+            'subcategory_counts': category_subcategories
         }
         
         # Count frequency of each category and initialize high-error counts
