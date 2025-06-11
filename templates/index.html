@@ -405,12 +405,12 @@
                                         <span class="border-l pl-4">${highErrors.total} high-error</span>
                                     </div>
                                 </div>
-                                <div id="${detailId}" class="hidden p-2 bg-gray-50 space-y-2">
-                                    <h4 class="text-md font-bold text-red-700">Majority Incorrectly Answered: ${highErrPercent}%</h4>
-                                    ${subList ? `<div class="text-xs text-gray-700">${subList}</div>` : ''}
-                                    <div class="pl-4 space-y-4">${questionCards}</div>
-                                    <h4 class="text-sm font-semibold text-gray-700 mt-2">Majority Correctly Answered: ${correctPercent}%</h4>
-                                </div>
+                                 <div id="${detailId}" class="hidden p-2 bg-gray-50 space-y-2">
+                                     ${subList ? `<div class="text-xs text-gray-700">${subList}</div>` : ''}
+                                     <h4 class="text-md font-bold text-red-700">Amount of Questions Incorrectly Answered by More than 60% of Residents: ${highErrPercent}%</h4>
+                                     <div class="pl-4 space-y-4">${questionCards}</div>
+                                     <h4 class="text-sm font-semibold text-gray-700 mt-2">Majority Correctly Answered: ${correctPercent}%</h4>
+                                 </div>
                             </div>
                         `;
                     });
