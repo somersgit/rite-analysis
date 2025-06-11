@@ -390,6 +390,10 @@
                         const questionCards = questions.map(q =>
                             createQuestionCard(q.num, q.info, q.range === '60-79' ? 'border-yellow-400' : 'border-red-400')
                         ).join('') || '<p class="text-gray-500">No high-error questions.</p>';
+                        const subCounts = data.stats.category_summary.subcategory_counts[category] || {};
+                        const subList = Object.entries(subCounts).map(([sub, count]) =>
+                            `<span class="block ml-4 text-xs text-gray-700">${sub}: ${count}</span>`
+                        ).join('');
 
                         categoryList.innerHTML += `
                             <div class="border rounded">
@@ -403,6 +407,7 @@
                                 </div>
                                 <div id="${detailId}" class="hidden p-2 bg-gray-50 space-y-2">
                                     <h4 class="text-md font-bold text-red-700">Majority Incorrectly Answered: ${highErrPercent}%</h4>
+                                    ${subList ? `<div class="text-xs text-gray-700">${subList}</div>` : ''}
                                     <div class="pl-4 space-y-4">${questionCards}</div>
                                     <h4 class="text-sm font-semibold text-gray-700 mt-2">Majority Correctly Answered: ${correctPercent}%</h4>
                                 </div>
