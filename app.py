@@ -579,6 +579,9 @@ Provide a concise, bullet-pointed list of 5-7 key teaching points that would be 
 def index():
     empty_result = {
         'stats': {
+            '60-79': 0,
+            '80+': 0,
+            'total_questions': 0,
             'category_summary': {
                 'total_pages': 0,
                 'uncategorized_pages': 0,
@@ -647,6 +650,8 @@ def analyze():
         
         # Add question counts to category summary
         category_summary['category_questions'] = category_question_counts
+        total_questions = sum(category_question_counts.values())
+        category_summary['total_questions'] = total_questions
         
         # Count high-error questions per category using the passed category_questions
         for error_range, questions in high_error_questions.items():
@@ -705,6 +710,7 @@ def analyze():
             'stats': {
                 '60-79': len(high_error_questions['60-79']),
                 '80+': len(high_error_questions['80+']),
+                'total_questions': total_questions,
                 'categories': subcategory_stats,
                 'general_categories': general_category_stats,
                 'population': population_stats,
